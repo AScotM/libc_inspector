@@ -31,6 +31,7 @@ class LibcInspector:
     def __init__(self):
         self.libc = None
         self.libc_available = False
+        self.system = platform.system()
     
     def load(self):
         libc_names = {
@@ -39,7 +40,7 @@ class LibcInspector:
             'Windows': 'msvcrt.dll'
         }
         try:
-            libc_name = libc_names.get(platform.system(), 'libc.so.6')
+            libc_name = libc_names.get(self.system, 'libc.so.6')
             self.libc = ctypes.CDLL(libc_name)
             self.libc_available = True
             return True
@@ -106,7 +107,7 @@ class LibcInspector:
             self.libc.gethostname.restype = ctypes.c_int
             buf = ctypes.create_string_buffer(256)
             if self.libc.gethostname(buf, 256) == 0:
-                return buf.value.decode()
+                return buf.value.decode(errors="ignore")
             return None
         except AttributeError:
             return None
@@ -125,7 +126,7 @@ class LibcInspector:
             return None
     
     def get_sysinfo(self):
-        if platform.system() != 'Linux' or not self.libc_available:
+        if self.system != 'Linux' or not self.libc_available:
             return None
         try:
             self.libc.sysinfo.argtypes = [ctypes.POINTER(SysInfo)]
@@ -167,7 +168,8 @@ class LibcInspector:
             "epoch_time": self.get_time(),
             "hostname": self.get_hostname(),
             "loadavg": self.get_loadavg(),
-            "sysinfo": self.get_sysinfo()
+            "sysinfo": self.get_sysinfo(),
+            "rlimit_nofile": None
         }
         
         if self.libc_available:
@@ -175,7 +177,7 @@ class LibcInspector:
                 import resource
                 data["rlimit_nofile"] = self.get_rlimit(resource.RLIMIT_NOFILE)
             except (ImportError, AttributeError):
-                data["rlimit_nofile"] = None
+                pass
         
         return data
 
@@ -189,8 +191,7 @@ def print_system_info():
     print(f"OS           : {platform.system()} {platform.release()}")
     print(f"Architecture : {platform.machine()}")
     print(f"Python       : {platform.python_version()}")
-    if hasattr(platform, 'node'):
-        print(f"Hostname     : {platform.node()}")
+    print(f"Hostname     : {platform.node()}")
 
 def format_bytes(bytes_value):
     if bytes_value is None:
