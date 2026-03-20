@@ -183,7 +183,7 @@ class LibcInspector:
 
 def print_header():
     print("=" * 60)
-    print(" Advanced Libc Inspector")
+    print("Libc Inspector")
     print("=" * 60)
 
 def print_system_info():
